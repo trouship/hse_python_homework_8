@@ -1,6 +1,7 @@
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
 import os
+from dotenv import load_dotenv
 from requests import get, put
 import urllib.parse
 import json
@@ -19,12 +20,16 @@ class HttpGetHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         def fname2html(fname):
             return f"""
-                <li onclick="fetch('/upload', {{'method': 'POST', 'body': '{fname}'}})">
+                <li {'style="color: rgba(0, 200, 0, 0.25)"' if fname in item_names else ""} onclick="fetch('/upload', {{'method': 'POST', 'body': '{fname}'}})">
                     {fname}
                 </li>
             """
 
-
+        #Get previous files
+        ya_path = f"Backup/"
+        resp = get(f"https://cloud-api.yandex.net/v1/disk/resources?path={ya_path}&fields=_embedded.items.name",
+                   headers={"Authorization": f"OAuth {TOKEN}"})
+        item_names = [item["name"] for item in json.loads(resp.text)["_embedded"]["items"]]
 
         self.send_response(200)
         self.send_header("Content-type", "text/html; charset=utf-8")
@@ -56,5 +61,6 @@ class HttpGetHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
-TOKEN = input("Input your yandex poligon token: ")
+load_dotenv()
+TOKEN = os.environ.get("TOKEN")
 run(handler_class=HttpGetHandler)
